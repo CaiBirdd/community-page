@@ -128,7 +128,6 @@ const allTestimonials = [
     avatarUrl: 'https://i.pravatar.cc/150?img=4',
     rating: 5
   },
-  // 添加更多评价数据以支持切换（如果需要）
   {
     quote: 'Excellent service and amazing support team! The product exceeded my expectations in every way possible.',
     name: 'Sarah Wilson',
@@ -159,24 +158,17 @@ const allTestimonials = [
   }
 ]
 
-/**
- * 当前显示的起始索引（用于轮播切换）
- */
+
+//当前显示的起始索引 用于轮播切换
 const currentStartIndex = ref(0)
 
-/**
- * 切换方向：'slide-left' 表示向左滑动（下一个），'slide-right' 表示向右滑动（上一个）
- */
+//切换方向：'slide-left' 表示向左滑动，'slide-right' 表示向右滑动
 const slideDirection = ref('slide-left')
 
-/**
- * 是否正在动画中（用于控制容器溢出）
- */
+//是否正在切换动画中（用于控制容器溢出）
 const isAnimating = ref(false)
 
-/**
- * 每次显示的卡片数量
- */
+ //每次显示的卡片数量
 const cardsPerPage = 4
 
 /**
@@ -195,7 +187,7 @@ const displayedTestimonials = computed(() => {
 /**
  * 导航到上一组卡片
  * 向前移动4个位置，支持循环
- * 设置动画方向为向右滑动（新卡片从左侧滑入）
+ * 设置动画方向为向右滑动，新卡片从左侧滑入
  */
 const handlePrev = () => {
   slideDirection.value = 'slide-right'
@@ -210,7 +202,7 @@ const handlePrev = () => {
 /**
  * 导航到下一组卡片
  * 向后移动4个位置，支持循环
- * 设置动画方向为向左滑动（新卡片从右侧滑入）
+ * 设置动画方向为向左滑动，新卡片从右侧滑入
  */
 const handleNext = () => {
   slideDirection.value = 'slide-left'
