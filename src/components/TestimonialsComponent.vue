@@ -30,13 +30,19 @@
     </div>
 
     <!-- 评价卡片网格容器 -->
-    <div class="testimonials-grid">
-      <!-- 遍历渲染每个评价卡片 -->
-      <div
-        v-for="(testimonial, index) in testimonials"
-        :key="index"
-        class="testimonial-card"
+    <div class="testimonials-grid" :class="{ 'is-animating': isAnimating }">
+      <!-- 遍历渲染当前显示的4张评价卡片 -->
+      <transition-group 
+        :name="slideDirection" 
+        tag="div" 
+        class="testimonials-grid-inner"
       >
+        <div
+          v-for="(testimonial, index) in displayedTestimonials"
+          :key="testimonial.name + currentStartIndex"
+          class="testimonial-card"
+          :data-card-index="index"
+        >
         <!-- 装饰性引用标记（左上角大引号） -->
         <div class="quotation-mark">“</div>
         
@@ -76,15 +82,16 @@
           </div>
         </div>
       </div>
+      </transition-group>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 /**
- * 客户评价数据数组
+ * 客户评价数据数组（完整数据集）
  * 每个评价对象包含：
  * @property {string} quote - 客户评价内容
  * @property {string} name - 客户姓名
@@ -92,7 +99,7 @@ import { ref } from 'vue'
  * @property {string} avatarUrl - 客户头像图片URL
  * @property {number} rating - 客户评分（1-5星）
  */
-const testimonials = ref([
+const allTestimonials = [
   {
     quote: 'hdrbchsbchdf bhwbcd cbwcblaCSJBWAIWSBA CIbn cbdirv scjhdbncnsibvndjikbvswujdbovsl nsjvudjs ncdsbdjcvdjnbsvznldbazie vbalzuws.',
     name: 'Jobs Benjamin',
@@ -120,20 +127,101 @@ const testimonials = ref([
     title: 'Professor',
     avatarUrl: 'https://i.pravatar.cc/150?img=4',
     rating: 5
+  },
+  // 添加更多评价数据以支持切换（如果需要）
+  {
+    quote: 'Excellent service and amazing support team! The product exceeded my expectations in every way possible.',
+    name: 'Sarah Wilson',
+    title: 'CEO',
+    avatarUrl: 'https://i.pravatar.cc/150?img=5',
+    rating: 5
+  },
+  {
+    quote: 'Outstanding quality and professional approach. Highly recommend this service to anyone looking for excellence.',
+    name: 'Michael Brown',
+    title: 'Director',
+    avatarUrl: 'https://i.pravatar.cc/150?img=6',
+    rating: 5
+  },
+  {
+    quote: 'The best decision we made this year. The team is responsive and the results speak for themselves.',
+    name: 'Emily Chen',
+    title: 'Manager',
+    avatarUrl: 'https://i.pravatar.cc/150?img=7',
+    rating: 5
+  },
+  {
+    quote: 'Top-notch service with attention to detail. Could not be happier with the outcome and support received.',
+    name: 'David Martinez',
+    title: 'Founder',
+    avatarUrl: 'https://i.pravatar.cc/150?img=8',
+    rating: 5
   }
-])
+]
 
 /**
- * 导航按钮事件处理函数
- * 点击"上一个下一个"按钮时的处理逻辑
- * TODO: 可在此处实现轮播切换功能
+ * 当前显示的起始索引（用于轮播切换）
+ */
+const currentStartIndex = ref(0)
+
+/**
+ * 切换方向：'slide-left' 表示向左滑动（下一个），'slide-right' 表示向右滑动（上一个）
+ */
+const slideDirection = ref('slide-left')
+
+/**
+ * 是否正在动画中（用于控制容器溢出）
+ */
+const isAnimating = ref(false)
+
+/**
+ * 每次显示的卡片数量
+ */
+const cardsPerPage = 4
+
+/**
+ * 计算当前应该显示的4张卡片
+ * 使用循环索引，当到达数组末尾时自动回到开头
+ */
+const displayedTestimonials = computed(() => {
+  const result = []
+  for (let i = 0; i < cardsPerPage; i++) {
+    const index = (currentStartIndex.value + i) % allTestimonials.length
+    result.push(allTestimonials[index])
+  }
+  return result
+})
+
+/**
+ * 导航到上一组卡片
+ * 向前移动4个位置，支持循环
+ * 设置动画方向为向右滑动（新卡片从左侧滑入）
  */
 const handlePrev = () => {
-  console.log('Previous clicked')
+  slideDirection.value = 'slide-right'
+  isAnimating.value = true // 开始动画
+  currentStartIndex.value = (currentStartIndex.value - cardsPerPage + allTestimonials.length) % allTestimonials.length
+  // 动画持续时间是 0.6s，在动画结束后恢复
+  setTimeout(() => {
+    isAnimating.value = false
+  }, 600)
 }
+
+/**
+ * 导航到下一组卡片
+ * 向后移动4个位置，支持循环
+ * 设置动画方向为向左滑动（新卡片从右侧滑入）
+ */
 const handleNext = () => {
-  console.log('Next clicked')
+  slideDirection.value = 'slide-left'
+  isAnimating.value = true // 开始动画
+  currentStartIndex.value = (currentStartIndex.value + cardsPerPage) % allTestimonials.length
+  // 动画持续时间是 0.6s，在动画结束后恢复
+  setTimeout(() => {
+    isAnimating.value = false
+  }, 600)
 }
+
 </script>
 
 <style lang="scss" scoped>
@@ -237,16 +325,26 @@ const handleNext = () => {
 
   /* 评价卡片网格容器 */
   .testimonials-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); // 桌面端：2列布局
-    gap: 21px;
-    padding: 0 14px;
+    padding: 0px 14px 13px 14px; // 底部padding为阴影留出空间（3px阴影 + 10px安全距离）
+    position: relative;
+    min-height: 500px; // 防止切换时高度跳动
+    overflow: visible; // 允许阴影和边框显示
+    
+    /* 动画期间只隐藏水平方向溢出，防止页面出现滚动条，但保持垂直滚动条 */
+    &.is-animating {
+      overflow-x: hidden; // 只隐藏水平方向的溢出
+      overflow-y: visible; // 保持垂直方向可见，不影响页面滚动条
+    }
 
-    /* 移动端响应式：单列布局 */
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-      gap: 14px;
-      padding: 0;
+    /* 内部网格容器 */
+    .testimonials-grid-inner {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr); // 桌面端：2列布局
+      grid-template-rows: repeat(2, auto); // 固定2行，防止动画时布局混乱
+      gap: 21px;
+      position: relative; // 确保过渡动画正常工作
+      padding: 10px 13px 13px 13px; // 左右和底部为阴影留出空间（3px阴影）
+      min-height: calc(244px * 2 + 21px + 20px); // 固定最小高度：2行卡片高度 + gap + padding，防止动画时高度变化
     }
 
     /* 单个评价卡片样式 */
@@ -260,6 +358,65 @@ const handleNext = () => {
       min-height: 244px;
       display: flex;
       flex-direction: column;
+      
+      /* 在动画过程中使用绝对定位，避免grid重新布局导致重叠 */
+      &.slide-left-enter-active,
+      &.slide-left-leave-active,
+      &.slide-right-enter-active,
+      &.slide-right-leave-active {
+        position: absolute !important;
+        // 宽度计算：50%容器宽度 - gap的一半（10.5px）- 右padding（13px）
+        // 这样确保不会超出容器右边界
+        width: calc(50% - 10.5px - 13px);
+        z-index: 10; // 确保动画卡片在上层
+        box-sizing: border-box; // 确保padding和border包含在宽度内
+      }
+      
+      /* 根据data-card-index计算每个卡片在grid中的位置 */
+      /* 第一行第一列 (index 0) */
+      &[data-card-index="0"] {
+        &.slide-left-enter-active,
+        &.slide-left-leave-active,
+        &.slide-right-enter-active,
+        &.slide-right-leave-active {
+          left: 13px; // 左padding
+          top: 10px; // 上padding
+        }
+      }
+      
+      /* 第一行第二列 (index 1) */
+      &[data-card-index="1"] {
+        &.slide-left-enter-active,
+        &.slide-left-leave-active,
+        &.slide-right-enter-active,
+        &.slide-right-leave-active {
+          // 50%位置 + gap的一半（10.5px）
+          left: calc(50% + 10.5px);
+          top: 10px;
+        }
+      }
+      
+      /* 第二行第一列 (index 2) */
+      &[data-card-index="2"] {
+        &.slide-left-enter-active,
+        &.slide-left-leave-active,
+        &.slide-right-enter-active,
+        &.slide-right-leave-active {
+          left: 13px;
+          top: calc(244px + 21px + 10px); // 卡片高度 + gap + 上padding
+        }
+      }
+      
+      /* 第二行第二列 (index 3) */
+      &[data-card-index="3"] {
+        &.slide-left-enter-active,
+        &.slide-left-leave-active,
+        &.slide-right-enter-active,
+        &.slide-right-leave-active {
+          left: calc(50% + 10.5px);
+          top: calc(244px + 21px + 10px);
+        }
+      }
 
       /* 装饰性引用标记：左上角大引号 */
       .quotation-mark {
@@ -375,6 +532,50 @@ const handleNext = () => {
       }
     }
   }
+}
+
+/* 卡片切换过渡动画 - 向左滑动（下一个按钮） */
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(-100%);
+}
+
+.slide-left-enter-to,
+.slide-left-leave-from {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 卡片切换过渡动画 - 向右滑动（上一个按钮） */
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(-100%);
+}
+
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.slide-right-enter-to,
+.slide-right-leave-from {
+  opacity: 1;
+  transform: translateX(0);
 }
 </style>
 
